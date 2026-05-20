@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Дизайн-токены (единственный источник правды) ── */
+:root {
+  --color-bg:      #F5F7F4;
+  --color-surface: #FFFFFF;
+  --color-ink:     #2F3A36;
+  --color-muted:   #6B7770;
+  --color-calm:    #A8C8B8;
+  --color-warn:    #E8C58F;
+  --color-alert:   #D9888F;
+  --color-border:  #E0E5E2;
+}
+
+/* ── Базовые стили ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Breathing circle (единственная разрешённая бесконечная анимация) ── */
+@keyframes breathe {
+  0%      { transform: scale(1);    opacity: 0.85; }
+  21.05%  { transform: scale(1.28); opacity: 1;    } /* конец вдоха  4 с */
+  57.89%  { transform: scale(1.28); opacity: 1;    } /* конец паузы  7 с */
+  100%    { transform: scale(1);    opacity: 0.85; } /* конец выдоха 8 с */
+}
+
+.breathing-circle {
+  animation: breathe 19s ease-in-out infinite;
+}
+
+/* ── Мягкий пульс-статус (не мигание!) ── */
+@keyframes soft-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--color-warn); }
+  50%       { box-shadow: 0 0 0 6px transparent;      }
+}
+
+.status-pulse {
+  animation: soft-pulse 3s ease-in-out infinite;
+}
+
+/* ── Safe-area для notch-устройств ── */
+.safe-top    { padding-top:    env(safe-area-inset-top,    0); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0); }
+
+/* ── prefers-reduced-motion — ОТКЛЮЧАЕТ ВСЁ ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration:       0.01ms !important;
+    animation-iteration-count: 1     !important;
+    transition-duration:      0.01ms !important;
+    scroll-behavior:          auto   !important;
+  }
+}

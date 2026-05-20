@@ -1,0 +1,248 @@
+import { useEffect, useState } from 'react';
+import { BarChart2, AlertCircle, Clock, TrendingDown, Download } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from 'recharts';
+import { api, type HistoryResponse, type EpisodeOut } from '../lib/api';
+
+const SEVERITY_LABEL: Record<number, string> = { 1: 'Лёгкий', 2: 'Умеренный', 3: 'Тяжёлый' };
+const SEVERITY_COLOR: Record<number, string> = {
+  1: 'var(--color-calm)',
+  2: 'var(--color-warn)',
+  3: 'var(--color-alert)',
+};
+
+function formatDate(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+}
+
+function formatTime(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+}
+
+function buildChartData(data: HistoryResponse) {
+  // Group predictions by day, compute avg label
+  const byDay: Record<string, { sum: number; count: number }> = {};
+  for (const p of data.recent_predictions) {
+    const day = formatDate(p.ts);
+    if (!byDay[day]) byDay[day] = { sum: 0, count: 0 };
+    byDay[day].sum += p.label;
+    byDay[day].count += 1;
+  }
+  return Object.entries(byDay)
+    .map(([day, { sum, count }]) => ({ day, avg: parseFloat((sum / count).toFixed(2) ) }))
+    .slice(-7);
+}
+
+function StatCard({
+  icon: Icon,
+  value,
+  label,
+  color,
+}: {
+  icon: React.ElementType;
+  value: string | number;
+  label: string;
+  color: string;
+}) {
+  return (
+    <div style={{
+      backgroundColor: 'var(--color-surface)',
+      border: '1px solid var(--color-border)',
+      borderRadius: '0.75rem',
+      padding: '14px 12px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 6,
+      flex: 1,
+    }}>
+      <Icon size={22} strokeWidth={1.8} style={{ color }} aria-hidden="true" />
+      <span style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--color-ink)',
+        fontVariantNumeric: 'tabular-nums' }}>
+        {value}
+      </span>
+      <span style={{ fontSize: '0.68rem', color: 'var(--color-muted)', textAlign: 'center' }}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function EpisodeRow({ ep }: { ep: EpisodeOut }) {
+  return (
+    <div style={{
+      backgroundColor: 'var(--color-surface)',
+      border: '1px solid var(--color-border)',
+      borderRadius: '0.75rem',
+      padding: '12px 14px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 4,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{
+          display: 'inline-block',
+          width: 10, height: 10, borderRadius: '50%',
+          backgroundColor: SEVERITY_COLOR[ep.severity] ?? 'var(--color-muted)',
+          flexShrink: 0,
+        }} aria-hidden="true" />
+        <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-ink)', flex: 1 }}>
+          {SEVERITY_LABEL[ep.severity] ?? 'Эпизод'} — {ep.trigger_guess ?? 'неизвестно'}
+        </span>
+        <span style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>
+          {formatDate(ep.started_at)} {formatTime(ep.started_at)}
+        </span>
+      </div>
+      {ep.notes && (
+        <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-muted)', lineHeight: 1.5 }}>
+          {ep.notes}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export default function DoctorDashboard() {
+  const [data, setData] = useState<HistoryResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.history(1).then(setData).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  const chartData = data ? buildChartData(data) : [];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '24px 16px 16px' }}>
+      {/* Header */}
+      <header style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <BarChart2 size={24} strokeWidth={2} style={{ color: 'var(--color-calm)' }} />
+        <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: 'var(--color-ink)', flex: 1 }}>
+          Дашборд врача
+        </h1>
+        <button
+          onClick={() => {
+            const base = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:8000';
+            window.open(`${base}/export?user_id=1&format=pdf`, '_blank');
+          }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '8px 12px',
+            backgroundColor: 'var(--color-surface)',
+            border: '1.5px solid var(--color-border)',
+            borderRadius: '0.5rem',
+            fontSize: '0.78rem', fontWeight: 500,
+            color: 'var(--color-ink)', cursor: 'pointer',
+          }}
+          aria-label="Экспортировать отчёт в PDF"
+        >
+          <Download size={14} strokeWidth={2} aria-hidden="true" />
+          PDF
+        </button>
+      </header>
+
+      {loading && (
+        <p style={{ color: 'var(--color-muted)', fontSize: '0.875rem', textAlign: 'center', margin: '20px 0' }}>
+          Загрузка данных…
+        </p>
+      )}
+
+      {!loading && data && (
+        <>
+          {/* Stats row */}
+          <div style={{ display: 'flex', gap: 10 }}>
+            <StatCard
+              icon={AlertCircle}
+              value={data.stats_7d.episodes_count}
+              label="эпизодов за 7 дней"
+              color="var(--color-warn)"
+            />
+            <StatCard
+              icon={TrendingDown}
+              value={data.stats_7d.avg_severity.toFixed(1)}
+              label="средн. тяжесть"
+              color="var(--color-alert)"
+            />
+            <StatCard
+              icon={Clock}
+              value={data.stats_7d.critical_events}
+              label="критичных событий"
+              color="var(--color-alert)"
+            />
+          </div>
+
+          {data.stats_7d.top_trigger && (
+            <div style={{
+              backgroundColor: '#FBF0DA',
+              border: '1px solid var(--color-warn)',
+              borderRadius: '0.75rem',
+              padding: '10px 14px',
+              fontSize: '0.83rem',
+              color: 'var(--color-ink)',
+            }}>
+              Основной триггер недели:{' '}
+              <strong>{data.stats_7d.top_trigger}</strong>
+            </div>
+          )}
+
+          {/* Chart */}
+          {chartData.length > 0 && (
+            <div style={{
+              backgroundColor: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+              borderRadius: '1rem',
+              padding: '16px 8px 8px',
+            }}>
+              <p style={{ margin: '0 0 12px 8px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-ink)' }}>
+                Среднее состояние по дням
+              </p>
+              <ResponsiveContainer width="100%" height={160}>
+                <LineChart data={chartData} margin={{ top: 4, right: 12, bottom: 4, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                  <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#6B7770' }} />
+                  <YAxis domain={[0, 2]} ticks={[0, 1, 2]}
+                    tickFormatter={v => ['Норма', 'Рост', 'Криз'][v] ?? ''}
+                    tick={{ fontSize: 9, fill: '#6B7770' }} width={40} />
+                  <Tooltip
+                    formatter={(v: number) => [['Норма', 'Напряжение', 'Кризис'][Math.round(v)] ?? v, 'Состояние']}
+                    contentStyle={{ fontSize: '0.78rem', borderRadius: '0.5rem', border: '1px solid var(--color-border)' }}
+                  />
+                  <Line
+                    type="monotone" dataKey="avg"
+                    stroke="var(--color-calm)" strokeWidth={2} dot={{ r: 4, fill: 'var(--color-calm)' }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Episode list */}
+          {data.episodes.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <p style={{ margin: 0, fontSize: '0.83rem', fontWeight: 600, color: 'var(--color-ink)' }}>
+                История эпизодов
+              </p>
+              {data.episodes.map(ep => <EpisodeRow key={ep.id} ep={ep} />)}
+            </div>
+          )}
+        </>
+      )}
+
+      {!loading && !data && (
+        <p style={{ color: 'var(--color-muted)', fontSize: '0.875rem', textAlign: 'center' }}>
+          Нет данных. Убедитесь, что backend запущен.
+        </p>
+      )}
+    </div>
+  );
+}

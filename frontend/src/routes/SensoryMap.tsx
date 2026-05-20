@@ -1,0 +1,176 @@
+import { useEffect, useState } from 'react';
+import { Map, Navigation, ChevronDown, ChevronUp } from 'lucide-react';
+
+interface QuietRoute {
+  from: string;
+  to: string;
+  duration_min: number;
+  steps: string[];
+}
+
+export default function SensoryMap() {
+  const [route, setRoute] = useState<QuietRoute | null>(null);
+  const [showRoute, setShowRoute] = useState(false);
+
+  useEffect(() => {
+    fetch('/sensory-map.json')
+      .then(r => r.json())
+      .then((d: { quiet_route: QuietRoute }) => setRoute(d.quiet_route))
+      .catch(() => {});
+  }, []);
+
+  return (
+    <div className="flex flex-col gap-4 px-4 pt-6 pb-4">
+      <header className="flex items-center gap-2">
+        <Map size={24} strokeWidth={2} style={{ color: 'var(--color-calm)' }} />
+        <h1
+          style={{
+            margin: 0,
+            fontSize: '1.25rem',
+            fontWeight: 600,
+            color: 'var(--color-ink)',
+          }}
+        >
+          Сенсорная карта
+        </h1>
+      </header>
+
+      {/* SVG map */}
+      <div
+        style={{
+          backgroundColor: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: '1rem',
+          overflow: 'hidden',
+        }}
+        aria-label="Карта сенсорных зон"
+      >
+        <svg
+          viewBox="0 0 320 200"
+          width="100%"
+          role="img"
+          aria-label="Схематичная карта с тихими и шумными зонами"
+        >
+          <rect width="320" height="200" fill="#F0F4F2" />
+
+          {/* Тихие зоны */}
+          <rect x="20"  y="20"  width="100" height="70" rx="6" fill="#D4EDE2" stroke="#A8C8B8" strokeWidth="1.5" />
+          <text x="70"  y="58" textAnchor="middle" fontSize="11" fontWeight="600" fill="#3D6B57">Парк</text>
+          <text x="70"  y="72" textAnchor="middle" fontSize="9"  fill="#5A8A72">тихо</text>
+
+          <rect x="200" y="110" width="100" height="70" rx="6" fill="#D4EDE2" stroke="#A8C8B8" strokeWidth="1.5" />
+          <text x="250" y="148" textAnchor="middle" fontSize="11" fontWeight="600" fill="#3D6B57">Библиотека</text>
+          <text x="250" y="162" textAnchor="middle" fontSize="9"  fill="#5A8A72">тихо</text>
+
+          {/* Шумные зоны */}
+          <rect x="160" y="20"  width="140" height="70" rx="6" fill="#F8E0E1" stroke="#D9888F" strokeWidth="1.5" />
+          <text x="230" y="58" textAnchor="middle" fontSize="11" fontWeight="600" fill="#8B3A3E">Метро</text>
+          <text x="230" y="72" textAnchor="middle" fontSize="9"  fill="#A05060">шумно</text>
+
+          {/* Умеренная зона */}
+          <rect x="20"  y="120" width="160" height="60" rx="6" fill="#FBF0DA" stroke="#E8C58F" strokeWidth="1.5" />
+          <text x="100" y="153" textAnchor="middle" fontSize="11" fontWeight="600" fill="#7A5A1F">Кафе</text>
+          <text x="100" y="167" textAnchor="middle" fontSize="9"  fill="#9A7A30">умеренно</text>
+
+          {/* Route path (shown when showRoute is true) */}
+          {showRoute && (
+            <>
+              <polyline
+                points="160,190 140,150 100,100 70,90"
+                stroke="#A8C8B8"
+                strokeWidth="3"
+                strokeDasharray="6 3"
+                fill="none"
+                strokeLinecap="round"
+              />
+              <circle cx="70" cy="90" r="6" fill="#A8C8B8" />
+              <circle cx="160" cy="190" r="5" fill="#6B7770" />
+            </>
+          )}
+        </svg>
+      </div>
+
+      {/* Legend */}
+      <div className="flex gap-4 flex-wrap">
+        {[
+          { color: '#D4EDE2', stroke: '#A8C8B8', label: 'Тихая зона'   },
+          { color: '#FBF0DA', stroke: '#E8C58F', label: 'Умеренно'     },
+          { color: '#F8E0E1', stroke: '#D9888F', label: 'Шумно'        },
+        ].map(({ color, stroke, label }) => (
+          <div key={label} className="flex items-center gap-1.5">
+            <div
+              style={{
+                width: 14,
+                height: 14,
+                borderRadius: 3,
+                backgroundColor: color,
+                border: `1.5px solid ${stroke}`,
+                flexShrink: 0,
+              }}
+            />
+            <span style={{ fontSize: '0.78rem', color: 'var(--color-muted)' }}>{label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Route panel */}
+      {showRoute && route && (
+        <div
+          style={{
+            backgroundColor: '#EEF7F1',
+            border: '1.5px solid var(--color-calm)',
+            borderRadius: '1rem',
+            padding: '14px 16px',
+          }}
+          role="region"
+          aria-label="Тихий маршрут"
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <Navigation size={18} strokeWidth={2} style={{ color: 'var(--color-calm)', flexShrink: 0 }} aria-hidden="true" />
+            <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-ink)' }}>
+              → {route.to}
+            </span>
+            <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--color-muted)' }}>
+              ~{route.duration_min} мин
+            </span>
+          </div>
+          <ol style={{ margin: 0, paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {route.steps.map((step, i) => (
+              <li key={i} style={{ fontSize: '0.82rem', color: 'var(--color-ink)', lineHeight: 1.5 }}>
+                {step}
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {/* CTA */}
+      <button
+        onClick={() => setShowRoute(prev => !prev)}
+        style={{
+          minHeight: 48,
+          width: '100%',
+          backgroundColor: 'var(--color-calm)',
+          color: 'var(--color-ink)',
+          border: 'none',
+          borderRadius: '0.75rem',
+          fontSize: '1rem',
+          fontWeight: 600,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          transition: 'opacity 200ms ease-in-out',
+        }}
+        aria-expanded={showRoute}
+        aria-label={showRoute ? 'Скрыть тихий маршрут' : 'Найти ближайшую тихую зону'}
+      >
+        {showRoute
+          ? <><ChevronUp size={18} aria-hidden="true" /> Скрыть маршрут</>
+          : <><Navigation size={18} aria-hidden="true" /> Найти тихую зону</>
+        }
+      </button>
+    </div>
+  );
+}

@@ -1,0 +1,10 @@
+{
+  "name": "calm_day",
+  "description": "Спокойный день дома — базовый сценарий для демонстрации нормального состояния",
+  "duration_minutes": 20,
+  "phases": [
+    { "start_min": 0,  "end_min": 10, "state": "calm",        "label": "Утро дома — тихо" },
+    { "start_min": 10, "end_min": 16, "state": "rising_slow", "label": "Небольшое волнение (звонок, шум)"},
+    { "start_min": 16, "end_min": 20, "state": "calm",        "label": "Успокоился после дыхательной практики" }
+  ]
+}

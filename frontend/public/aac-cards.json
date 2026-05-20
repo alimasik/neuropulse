@@ -1,0 +1,26 @@
+[
+  {
+    "id": "autism",
+    "icon": "Brain",
+    "text_ru": "У меня аутизм. Я всё понимаю, но не могу говорить.",
+    "text_en": "I have autism. I understand, but cannot speak."
+  },
+  {
+    "id": "quiet",
+    "icon": "MapPin",
+    "text_ru": "Помогите мне попасть в тихое место.",
+    "text_en": "Please help me get to a quiet place."
+  },
+  {
+    "id": "space",
+    "icon": "ShieldOff",
+    "text_ru": "Не трогайте меня. Пожалуйста, отойдите.",
+    "text_en": "Do not touch me. Please step back."
+  },
+  {
+    "id": "call",
+    "icon": "Phone",
+    "text_ru": "Позвоните моему близкому.",
+    "text_en": "Please call my emergency contact."
+  }
+]

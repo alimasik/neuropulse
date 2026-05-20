@@ -1,0 +1,23 @@
+{
+  "quiet_zones": [
+    { "id": "park", "name": "Парк им. Горького", "type": "park", "noise_level": "low" },
+    { "id": "library", "name": "Библиотека", "type": "library", "noise_level": "low" }
+  ],
+  "noise_hotspots": [
+    { "id": "metro", "name": "Метро", "type": "transport", "noise_level": "high" }
+  ],
+  "moderate_zones": [
+    { "id": "cafe", "name": "Кафе", "type": "cafe", "noise_level": "moderate" }
+  ],
+  "quiet_route": {
+    "from": "Текущее местоположение",
+    "to": "Парк им. Горького",
+    "duration_min": 7,
+    "steps": [
+      "Выйдите из здания и поверните налево",
+      "Пройдите 200 м по тихой боковой улице (избегайте главной дороги)",
+      "Перейдите через небольшой сквер — там тихо",
+      "Войдите в парк через главный вход — лавочки справа"
+    ]
+  }
+}

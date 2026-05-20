@@ -1,0 +1,12 @@
+{
+  "name": "school_recess",
+  "description": "Перемена в школе — шум и толпа в коридоре",
+  "duration_minutes": 25,
+  "phases": [
+    { "start_min": 0,  "end_min": 5,  "state": "calm",        "label": "Урок — тихий класс" },
+    { "start_min": 5,  "end_min": 10, "state": "rising_slow", "label": "Звонок на перемену — начало шума" },
+    { "start_min": 10, "end_min": 18, "state": "rising_fast", "label": "Коридор — толпа, крики, беготня" },
+    { "start_min": 18, "end_min": 22, "state": "critical",    "label": "Сенсорный пик — мелтдаун риск" },
+    { "start_min": 22, "end_min": 25, "state": "calm",        "label": "Зашёл в тихий кабинет" }
+  ]
+}

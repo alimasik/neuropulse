@@ -1,0 +1,12 @@
+{
+  "name": "metro_rush",
+  "description": "Поездка в метро в час пик — нарастающий сенсорный стресс",
+  "duration_minutes": 30,
+  "phases": [
+    { "start_min": 0,  "end_min": 5,  "state": "calm",         "label": "Выход из дома — спокойно" },
+    { "start_min": 5,  "end_min": 10, "state": "rising_slow",  "label": "Подход к станции метро" },
+    { "start_min": 10, "end_min": 20, "state": "rising_fast",  "label": "В вагоне в час пик — шум, толпа" },
+    { "start_min": 20, "end_min": 27, "state": "critical",     "label": "Пересадка — сенсорная перегрузка" },
+    { "start_min": 27, "end_min": 30, "state": "calm",         "label": "Вышел на улицу — спокойно" }
+  ]
+}

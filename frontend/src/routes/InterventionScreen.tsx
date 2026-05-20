@@ -1,0 +1,218 @@
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Wind, Map, CheckCircle, Music } from 'lucide-react';
+
+// 4-7-8 cycle: inhale 4s, hold 7s, exhale 8s = 19s total
+const PHASES = [
+  { label: 'Вдох',     seconds: 4,  hint: '4 секунды'  },
+  { label: 'Задержка', seconds: 7,  hint: '7 секунд'   },
+  { label: 'Выдох',    seconds: 8,  hint: '8 секунд'   },
+] as const;
+
+const CYCLE = 19;
+
+export default function InterventionScreen() {
+  const navigate = useNavigate();
+  const [running, setRunning] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [okSent, setOkSent] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const cyclePos = elapsed % CYCLE;
+  let phaseIdx = 0;
+  let acc = 0;
+  for (let i = 0; i < PHASES.length; i++) {
+    if (cyclePos < acc + PHASES[i].seconds) { phaseIdx = i; break; }
+    acc += PHASES[i].seconds;
+  }
+  const phase = PHASES[phaseIdx];
+  const timeInPhase = cyclePos - acc;
+  const remaining = phase.seconds - timeInPhase;
+
+  useEffect(() => {
+    if (running) {
+      timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [running]);
+
+  const handleOk = async () => {
+    setRunning(false);
+    setOkSent(true);
+    try {
+      // Best-effort feedback — ignore errors
+      await fetch(
+        `${(import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:8000'}/feedback`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prediction_id: 1, helpful: true, user_state: 'ok' }),
+        }
+      );
+    } catch { /* backend optional for demo */ }
+    setTimeout(() => navigate('/'), 800);
+  };
+
+  return (
+    <div className="flex flex-col gap-4 px-4 pt-6 min-h-screen">
+      {/* Header */}
+      <header className="flex items-center gap-2">
+        <Wind size={24} strokeWidth={2} style={{ color: 'var(--color-calm)' }} />
+        <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: 'var(--color-ink)' }}>
+          Дыхание 4-7-8
+        </h1>
+      </header>
+
+      {/* Instruction card */}
+      <div style={{
+        backgroundColor: 'var(--color-surface)',
+        border: '1.5px solid var(--color-warn)',
+        borderRadius: '1rem',
+        padding: '14px 18px',
+      }}>
+        <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-muted)', lineHeight: 1.6 }}>
+          Вдох 4 сек · Задержка 7 сек · Выдох 8 сек
+        </p>
+      </div>
+
+      {/* Breathing circle */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, margin: '8px 0' }}>
+        <div
+          className={running ? 'breathing-circle' : ''}
+          style={{
+            width: 180,
+            height: 180,
+            borderRadius: '50%',
+            backgroundColor: 'var(--color-calm)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 4,
+            transition: 'background-color 600ms ease',
+          }}
+          role="img"
+          aria-label={running ? `${phase.label} — ${remaining} секунд` : 'Дыхательный индикатор'}
+        >
+          <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-ink)' }}>
+            {running ? phase.label : 'Старт'}
+          </span>
+          {running && (
+            <span style={{
+              fontSize: '2rem',
+              fontWeight: 800,
+              color: 'var(--color-ink)',
+              fontVariantNumeric: 'tabular-nums',
+              lineHeight: 1,
+            }}>
+              {remaining}
+            </span>
+          )}
+        </div>
+
+        {running && (
+          <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-muted)' }}>
+            {phase.hint} · цикл {Math.floor(elapsed / CYCLE) + 1}
+          </p>
+        )}
+      </div>
+
+      {/* Start/Stop */}
+      <button
+        onClick={() => { setRunning(r => !r); if (!running) setElapsed(0); }}
+        style={{
+          minHeight: 48,
+          width: '100%',
+          backgroundColor: running ? 'var(--color-surface)' : 'var(--color-calm)',
+          color: 'var(--color-ink)',
+          border: running ? '1.5px solid var(--color-border)' : 'none',
+          borderRadius: '0.75rem',
+          fontSize: '1rem',
+          fontWeight: 600,
+          cursor: 'pointer',
+          transition: 'all 200ms ease-in-out',
+        }}
+        aria-label={running ? 'Остановить дыхательное упражнение' : 'Начать дыхательное упражнение'}
+      >
+        {running ? 'Пауза' : 'Начать дыхание'}
+      </button>
+
+      {/* Secondary actions */}
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button
+          onClick={() => navigate('/map')}
+          style={{
+            flex: 1,
+            minHeight: 48,
+            backgroundColor: 'var(--color-surface)',
+            color: 'var(--color-ink)',
+            border: '1.5px solid var(--color-border)',
+            borderRadius: '0.75rem',
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+          }}
+          aria-label="Найти тихое место на карте"
+        >
+          <Map size={16} strokeWidth={2} aria-hidden="true" />
+          Тихий маршрут
+        </button>
+
+        <button
+          style={{
+            flex: 1,
+            minHeight: 48,
+            backgroundColor: 'var(--color-surface)',
+            color: 'var(--color-ink)',
+            border: '1.5px solid var(--color-border)',
+            borderRadius: '0.75rem',
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+          }}
+          aria-label="Включить успокаивающий звук (эмбиент)"
+        >
+          <Music size={16} strokeWidth={2} aria-hidden="true" />
+          Эмбиент
+        </button>
+      </div>
+
+      {/* I'm OK */}
+      <button
+        onClick={handleOk}
+        disabled={okSent}
+        style={{
+          minHeight: 52,
+          width: '100%',
+          backgroundColor: okSent ? 'var(--color-bg)' : 'var(--color-surface)',
+          color: okSent ? 'var(--color-muted)' : 'var(--color-ink)',
+          border: `1.5px solid ${okSent ? 'var(--color-border)' : 'var(--color-calm)'}`,
+          borderRadius: '0.75rem',
+          fontSize: '1rem',
+          fontWeight: 600,
+          cursor: okSent ? 'default' : 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          marginTop: 'auto',
+          transition: 'all 300ms ease-in-out',
+        }}
+        aria-label="Я в порядке — завершить интервенцию"
+      >
+        <CheckCircle size={20} strokeWidth={2} aria-hidden="true" />
+        {okSent ? 'Отлично! Возвращаемся…' : 'Я в порядке'}
+      </button>
+    </div>
+  );
+}

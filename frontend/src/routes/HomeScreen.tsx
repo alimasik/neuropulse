@@ -1,0 +1,189 @@
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Activity, AlertTriangle, Zap } from 'lucide-react';
+import { usePredictPolling } from '../hooks/usePredictPolling';
+
+const STATUS_CONFIG = {
+  0: { label: 'Стабильно',      color: 'var(--color-calm)',    textColor: 'var(--color-ink)', pulse: false },
+  1: { label: 'Напряжение',     color: 'var(--color-warn)',    textColor: 'var(--color-ink)', pulse: true  },
+  2: { label: 'Нужна помощь',   color: 'var(--color-alert)',   textColor: '#FFFFFF',          pulse: true  },
+} as const;
+
+export default function HomeScreen() {
+  const navigate = useNavigate();
+  const { hr, hrv, label, labelName, confidence, recommendedAction, isStressMode, toggleStressMode } =
+    usePredictPolling(1, 1);
+
+  const status = STATUS_CONFIG[label as 0 | 1 | 2] ?? STATUS_CONFIG[0];
+
+  // Auto-navigate to intervention at label=2
+  useEffect(() => {
+    if (label === 2) {
+      const t = setTimeout(() => navigate('/intervention'), 1500);
+      return () => clearTimeout(t);
+    }
+  }, [label, navigate]);
+
+  const handleSOS = () => navigate('/aac');
+
+  return (
+    <div className="flex flex-col gap-4 px-4 pt-6">
+      {/* Header */}
+      <header className="flex items-center gap-2">
+        <Activity size={24} strokeWidth={2} style={{ color: 'var(--color-calm)' }} />
+        <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: 'var(--color-ink)' }}>
+          NeuroPulse
+        </h1>
+        <span
+          style={{
+            marginLeft: 'auto',
+            fontSize: '0.7rem',
+            color: 'var(--color-muted)',
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          {labelName} · {Math.round(confidence * 100)}%
+        </span>
+      </header>
+
+      {/* Warning banner */}
+      {label >= 1 && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          style={{
+            backgroundColor: label === 2 ? 'var(--color-alert)' : 'var(--color-warn)',
+            borderRadius: '0.75rem',
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+          }}
+        >
+          <AlertTriangle size={18} strokeWidth={2} aria-hidden="true"
+            style={{ color: label === 2 ? '#fff' : 'var(--color-ink)', flexShrink: 0 }} />
+          <span style={{ fontSize: '0.875rem', fontWeight: 600,
+            color: label === 2 ? '#fff' : 'var(--color-ink)' }}>
+            {label === 2
+              ? 'Обнаружен стресс — переходим к помощи…'
+              : 'Сделайте перерыв — уровень напряжения растёт'}
+          </span>
+        </div>
+      )}
+
+      {/* Status card */}
+      <div
+        role="status"
+        aria-live="polite"
+        style={{
+          backgroundColor: 'var(--color-surface)',
+          border: `2px solid ${status.color}`,
+          borderRadius: '1rem',
+          padding: '24px 20px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 16,
+        }}
+      >
+        <div
+          className={status.pulse ? 'status-pulse' : ''}
+          style={{
+            width: 80,
+            height: 80,
+            borderRadius: '50%',
+            backgroundColor: status.color,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background-color 600ms ease-in-out',
+          }}
+          aria-label={`Статус: ${status.label}`}
+        >
+          <Activity size={32} strokeWidth={2} style={{ color: status.textColor }} aria-hidden="true" />
+        </div>
+
+        <p style={{ margin: 0, fontSize: '1.15rem', fontWeight: 600, color: 'var(--color-ink)' }}>
+          {status.label}
+        </p>
+
+        {/* Biometry row */}
+        <div style={{ display: 'flex', gap: 24 }}>
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-ink)',
+              fontVariantNumeric: 'tabular-nums' }}>
+              {hr}
+            </p>
+            <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-muted)' }}>уд/мин</p>
+          </div>
+          <div style={{ width: 1, backgroundColor: 'var(--color-border)' }} />
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-ink)',
+              fontVariantNumeric: 'tabular-nums' }}>
+              {Math.round(hrv)}
+            </p>
+            <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-muted)' }}>HRV мс</p>
+          </div>
+        </div>
+
+        {recommendedAction && (
+          <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-muted)',
+            backgroundColor: 'var(--color-bg)', borderRadius: '0.5rem', padding: '6px 12px' }}>
+            Рекомендация:{' '}
+            <strong>
+              {recommendedAction === 'breathing' && 'дыхательное упражнение'}
+              {recommendedAction === 'quiet_route' && 'тихий маршрут'}
+              {recommendedAction === 'aac' && 'ААК-карточки'}
+            </strong>
+          </p>
+        )}
+      </div>
+
+      {/* Demo stress toggle */}
+      <button
+        onClick={toggleStressMode}
+        style={{
+          minHeight: 48,
+          width: '100%',
+          backgroundColor: isStressMode ? '#F8E0E1' : 'var(--color-surface)',
+          color: isStressMode ? 'var(--color-alert)' : 'var(--color-muted)',
+          border: `1.5px solid ${isStressMode ? 'var(--color-alert)' : 'var(--color-border)'}`,
+          borderRadius: '0.75rem',
+          fontSize: '0.9rem',
+          fontWeight: 600,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          transition: 'all 300ms ease-in-out',
+        }}
+        aria-label={isStressMode ? 'Остановить симуляцию стресса' : 'Запустить симуляцию стрессового эпизода'}
+      >
+        <Zap size={18} strokeWidth={2} aria-hidden="true" />
+        {isStressMode ? 'Остановить симуляцию' : 'Симуляция стресс-эпизода'}
+      </button>
+
+      {/* SOS button */}
+      <button
+        onClick={handleSOS}
+        style={{
+          minHeight: 56,
+          width: '100%',
+          backgroundColor: 'var(--color-alert)',
+          color: '#FFFFFF',
+          border: 'none',
+          borderRadius: '0.75rem',
+          fontSize: '1.1rem',
+          fontWeight: 700,
+          cursor: 'pointer',
+          letterSpacing: '0.05em',
+          transition: 'opacity 200ms ease-in-out',
+        }}
+        aria-label="SOS — перейти к ААК-карточкам для коммуникации"
+      >
+        SOS
+      </button>
+    </div>
+  );
+}
