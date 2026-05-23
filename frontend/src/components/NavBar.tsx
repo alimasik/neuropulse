@@ -37,7 +37,7 @@ export default function NavBar({ currentPath }: NavBarProps) {
                 style={{
                   minHeight: 48,
                   textDecoration: 'none',
-                  color: active ? 'var(--color-calm)' : 'var(--color-muted)',
+                  color: active ? 'var(--color-brand)' : 'var(--color-muted)',
                   fontWeight: active ? 600 : 400,
                   fontSize: '0.65rem',
                   transition: 'color 200ms ease-in-out',
